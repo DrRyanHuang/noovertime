@@ -6,6 +6,7 @@ model = AutoModel.from_pretrained("model")
 
 
 def get_topk(q, a, k):
+    # return [0, 1, 2]
     model.eval()
 
     with paddle.no_grad():
