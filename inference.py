@@ -9,7 +9,7 @@ from utils import (
     function_request_yiyan_aistudio,
     request_plugin,
 )
-from retrieve import get_topk
+from retrieve import get_topk_baseline
 import time
 from const import SIGNIFICANT_MAPPINGS, TOOL2ID
 from config import QIANFAN_AK, QIANFAN_SK, AISTUDIO_AK
@@ -25,7 +25,7 @@ pprint(models)
 
 def retrieve_api(query, api_path, k, keywords_hit):
     """
-    根据给定的查询语句和API文件路径，从中检索与查询语句最相关的k个API。
+    根据给定的查询语句和API文件路径, 从中检索与查询语句最相关的k个API。
 
     Args:
         query (str): 查询语句。
@@ -44,7 +44,7 @@ def retrieve_api(query, api_path, k, keywords_hit):
             api_json = json.loads(line)
             description_dict[api_json["description"]] = api_json
         description_list = list(description_dict.keys())
-        topk_api_id = get_topk(query, description_list, k)
+        topk_api_id = get_topk_baseline(query, description_list, k)
         topk_api_id += keywords_hit
         retrieve_list = [description_dict[description_list[id]] for id in topk_api_id]
     return retrieve_list
@@ -55,12 +55,12 @@ def api_list_process(retrieve_list):
     从给定的API列表中提取url路径列表和标准API信息列表。
 
     Args:
-        retrieve_list (List[Dict]): API列表，每个元素是一个字典，包含标准API信息和url路径信息。
+        retrieve_list (List[Dict]): API列表, 每个元素是一个字典, 包含标准API信息和url路径信息。
 
     Returns:
         Tuple[List[Dict], List[Dict]]: 包含APIurl路径和API信息的两个列表的元组。
-            - paths_list (List[Dict]): 包含APIurl路径信息的列表，每个元素是一个字典，包含API名称和路径信息。
-            - api_list (List[Dict]): 包含API信息的列表，每个元素是一个字典，包含API信息中除路径外的所有字段。
+            - paths_list (List[Dict]): 包含APIurl路径信息的列表, 每个元素是一个字典, 包含API名称和路径信息。
+            - api_list (List[Dict]): 包含API信息的列表, 每个元素是一个字典, 包含API信息中除路径外的所有字段。
 
     """
     paths_list = [{"name": api["name"], "paths": api["paths"]} for api in retrieve_list]
@@ -79,7 +79,7 @@ def hit_keywords(query):
 
 def tool_use_qianfan(query, query_id, api_path, save_path, topK):
     """
-    通过调用API获取相关函数，并使用聊天补全模型生成回答
+    通过调用API获取相关函数, 并使用聊天补全模型生成回答
 
     Args:
         query: 用户输入的查询语句
@@ -95,7 +95,7 @@ def tool_use_qianfan(query, query_id, api_path, save_path, topK):
     keywords_hit = hit_keywords(query)
     # 做召回
     retrieve_list = retrieve_api(query, api_path, topK, keywords_hit)
-    # 对API列表进行处理，获取url路径列表和标准API信息列表
+    # 对API列表进行处理, 获取url路径列表和标准API信息列表
     paths_list, api_list = api_list_process(retrieve_list)
 
     # 搭建qianfan服务请求一言模型
@@ -123,7 +123,7 @@ def tool_use_qianfan(query, query_id, api_path, save_path, topK):
             answer["result"] = response  # <--------------- 只能从这里退出
             break
         relevant_APIs.append({"api_name": func_name, "required_parameters": kwargs})
-        print(f"调用函数：{func_name}，参数：{kwargs}")
+        print(f"调用函数：{func_name}, 参数：{kwargs}")
 
         try:
             paths = next(
@@ -141,19 +141,19 @@ def tool_use_qianfan(query, query_id, api_path, save_path, topK):
         msgs.append(func_content, role="function")
         n += 1
 
-        # 防止请求一言频率过高，休眠0.5s
+        # 防止请求一言频率过高, 休眠0.5s
         time.sleep(0.5)
 
     answer["relevant APIs"] = relevant_APIs
     if not answer.get("result"):
-        answer["result"] = "抱歉，无法回答您的问题。"
+        answer["result"] = "抱歉, 无法回答您的问题。"
     with open(save_path, "a", encoding="utf-8") as f:
         f.write(json.dumps(answer, ensure_ascii=False) + "\n")
 
 
 def tool_use_aistudio(query, query_id, api_path, save_path, topK):
     """
-    通过调用API获取相关函数，并使用聊天补全模型生成回答
+    通过调用API获取相关函数, 并使用聊天补全模型生成回答
 
     Args:
         query: 用户输入的查询语句
@@ -169,11 +169,11 @@ def tool_use_aistudio(query, query_id, api_path, save_path, topK):
     keywords_hit = hit_keywords(query)
     # 做召回
     retrieve_list = retrieve_api(query, api_path, topK, keywords_hit)
-    # 对API列表进行处理，获取url路径列表和标准API信息列表
+    # 对API列表进行处理, 获取url路径列表和标准API信息列表
     paths_list, api_list = api_list_process(retrieve_list)
 
     #
-    PREFIX = "你是一个AI助手，很擅长使用不同的工具来解决用户query中的问题，请记住，用户的query中可能包含多个问题，请根据思维链的提示依次完整回答,以下是用户的query:\n"
+    PREFIX = "你是一个AI助手, 很擅长使用不同的工具来解决用户query中的问题, 请记住, 用户的query中可能包含多个问题, 请根据思维链的提示依次完整回答,以下是用户的query:\n"
     messages = [
         # You are an AI assistant that can call functions from the OpenAI API and use them to generate responses based on user input.
         {
@@ -202,7 +202,7 @@ def tool_use_aistudio(query, query_id, api_path, save_path, topK):
             answer["result"] = response  # <--------------- 只能从这里退出
             break
         relevant_APIs.append({"api_name": func_name, "required_parameters": kwargs})
-        print(f"[调用函数]：{func_name}，参数：{kwargs}")
+        print(f"[调用函数]：{func_name}, 参数：{kwargs}")
 
         try:
             paths = next(
@@ -236,12 +236,12 @@ def tool_use_aistudio(query, query_id, api_path, save_path, topK):
         ]
         n += 1
 
-        # 防止请求一言频率过高，休眠0.5s
+        # 防止请求一言频率过高, 休眠0.5s
         time.sleep(0.5)
 
     answer["relevant APIs"] = relevant_APIs
     if not answer.get("result"):
-        answer["result"] = "抱歉，无法回答您的问题。"
+        answer["result"] = "抱歉, 无法回答您的问题。"
     with open(save_path, "a", encoding="utf-8") as f:
         f.write(json.dumps(answer, ensure_ascii=False) + "\n")
 
@@ -266,7 +266,7 @@ def args():
         "--api_path",
         type=str,
         default="api_list.json",
-        help="API集合的路径，所有可用的API都在这个文件中",
+        help="API集合的路径, 所有可用的API都在这个文件中",
     )
     parser.add_argument(
         "--save_path",
@@ -275,7 +275,7 @@ def args():
         help="保存智能体回答结果的路径",
     )
     parser.add_argument(
-        "--topK", type=int, default=5, help="在API检索阶段，召回的API数量"
+        "--topK", type=int, default=5, help="在API检索阶段, 召回的API数量"
     )
     return parser.parse_args()
 

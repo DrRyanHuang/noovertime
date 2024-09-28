@@ -1,12 +1,12 @@
 import paddle
 from paddlenlp.transformers import AutoModel, AutoTokenizer
 
-tokenizer = AutoTokenizer.from_pretrained("model")
-model = AutoModel.from_pretrained("model")
+tokenizer = AutoTokenizer.from_pretrained("model_baseline")
+model = AutoModel.from_pretrained("model_baseline")
 
 
-def get_topk(q, a, k):
-    # return [0, 1, 2]
+def get_topk_baseline(q, a, k):
+    # baseline 提供的方法，将 query 和 description 转化为词向量，然后计算余弦相似度
     model.eval()
 
     with paddle.no_grad():
@@ -22,7 +22,8 @@ def get_topk(q, a, k):
         _, cls_embedding_tool = model(answer_input_ids, answer_token_type_ids)
 
         cos_sim = (cls_embedding_query * cls_embedding_tool).sum(-1) / (
-            paddle.linalg.norm(cls_embedding_query) * paddle.linalg.norm(cls_embedding_tool, axis=-1)
+            paddle.linalg.norm(cls_embedding_query)
+            * paddle.linalg.norm(cls_embedding_tool, axis=-1)
         )
 
     values, indices = paddle.topk(cos_sim, k=k)
