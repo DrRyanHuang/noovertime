@@ -85,6 +85,7 @@ if __name__ == "__main__":
 
     model_path = "ernie_ckpt"
     # model_path = "ernie-3.0-xbase-zh"
+    # model_path = "ernie-3.0-base-zh"
     data_path = "combine.json"
 
     if not os.path.exists(model_path):
@@ -94,7 +95,7 @@ if __name__ == "__main__":
     train_data_loader, dev_data_loader = get_training_dataloader(
         data_path, tokenizer, train_bs=32, dev_bs=128
     )
-    # model, tokenizer = train(model, tokenizer, train_data_loader, epochs=1)
+    model, tokenizer = train(model, tokenizer, train_data_loader, epochs=10)
 
     inference(model, dev_data_loader)
 

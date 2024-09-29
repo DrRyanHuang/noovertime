@@ -10,7 +10,7 @@ from paddlenlp.transformers import AutoModelForSequenceClassification, AutoToken
 # 即可调用不同网络结构的预训练模型。PaddleNLP的预训练模型可以很容易地通过 from_pretrained 方法加载，
 #
 # Transformer预训练模型汇总
-# https://paddlenlp.readthedocs.io/zh/latest/model_zoo/index.html#transformer
+# https://paddlenlp.readthedocs.io/zh/latest/model_zoo/transformers/ERNIE/contents.html
 
 # AutoModelForSequenceClassification 可用于Point-wise方式的二分类语义匹配任务，通过预训练模型获取输入文本对（query-title）的表示，
 # 之后将文本表示进行分类。PaddleNLP已经实现了ERNIE 3.0预训练模型，可以通过一行代码实现ERNIE 3.0预训练模型和分词器的加载。
