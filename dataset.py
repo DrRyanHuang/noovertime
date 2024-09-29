@@ -107,3 +107,58 @@ def get_training_dataloader(data_path, tokenizer, train_bs=64, dev_bs=128):
 
     # BatchSampler，选择批大小和是否随机乱序，进行DataLoader
     train_batch_sampler = BatchSampler(train_ds, batch_size=train_bs, shuffle=True)
+    dev_batch_sampler = BatchSampler(dev_ds, batch_size=dev_bs, shuffle=False)
+
+    train_data_loader = DataLoader(
+        dataset=train_ds, batch_sampler=train_batch_sampler, collate_fn=collate_fn
+    )
+    dev_data_loader = DataLoader(
+        dataset=dev_ds, batch_sampler=dev_batch_sampler, collate_fn=collate_fn
+    )
+
+    return train_data_loader, dev_data_loader
+
+
+def get_inference_dataloader(test_dataset, tokenizer, batchsize=128):
+
+    __test_ds = test_dataset
+
+    # 通过`Dataset`的`map`函数，使用分词器将数据集中query文本和title文本拼接，从原始文本处理成模型的输入。
+    # 实际训练中，根据显存大小调整批大小`batch_size`和文本最大长度`max_seq_length`。
+    # 数据预处理函数，利用分词器将文本转化为整数序列
+    trans_func = functools.partial(
+        preprocess_function, tokenizer=tokenizer, max_seq_length=128, is_test=True
+    )
+    test_ds = __test_ds.map(trans_func)
+
+    # collate_fn函数构造，将不同长度序列充到批中数据的最大长度，再将数据堆叠
+    collate_fn = DataCollatorWithPadding(tokenizer)
+
+    # BatchSampler，选择批大小和是否随机乱序，进行DataLoader
+    test_batch_sampler = BatchSampler(test_ds, batch_size=batchsize, shuffle=False)
+
+    test_data_loader = DataLoader(
+        dataset=test_ds, batch_sampler=test_batch_sampler, collate_fn=collate_fn
+    )
+
+    return test_data_loader
+
+
+if __name__ == "__main__":
+
+    train_ds, dev_ds = __get_dataset(DATA_PATH)
+
+    # 数据集返回为MapDataset类型
+    print("数据类型:", type(train_ds))
+    # label代表标签，测试集中不包含标签信息
+    print("训练集样例:", train_ds[0])
+    print("验证集样例:", dev_ds[0])
+
+    tools_list = []
+    with open("api_list.json", "r") as fp:
+        for line in fp.read().strip().split("\n"):
+            tools_list.append(json.loads(line.strip())["description"])
+
+    query = "一切都是命运石之门的选择 El Psy Kongroo"
+    infer_dataset = get_infer_dataset(query, tools_list)
+    print("推理样例:", infer_dataset[0])
