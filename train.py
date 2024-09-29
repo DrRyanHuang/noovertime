@@ -5,7 +5,7 @@ import paddle
 import paddle.nn.functional as F
 
 
-from dataset import get_dataloader
+from dataset import get_training_dataloader
 from model import get_model_tokenizer, evaluate, inference
 
 
@@ -91,10 +91,10 @@ if __name__ == "__main__":
         os.makedirs(model_path, exist_ok=True)
 
     model, tokenizer = get_model_tokenizer(model_path)
-    train_data_loader, dev_data_loader = get_dataloader(
+    train_data_loader, dev_data_loader = get_training_dataloader(
         data_path, tokenizer, train_bs=32, dev_bs=128
     )
-    model, tokenizer = train(model, tokenizer, train_data_loader, epochs=1)
+    # model, tokenizer = train(model, tokenizer, train_data_loader, epochs=1)
 
     inference(model, dev_data_loader)
 

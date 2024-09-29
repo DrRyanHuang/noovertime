@@ -1,8 +1,8 @@
 import json
 import functools
 
-from paddle.io import DataLoader, BatchSampler
-from paddlenlp.datasets import load_dataset
+from paddle.io import Dataset, DataLoader, BatchSampler
+from paddlenlp.datasets import load_dataset, MapDataset
 from paddlenlp.data import DataCollatorWithPadding
 
 # 加载中文语义匹配数据集 LCQMC
@@ -37,21 +37,43 @@ def __read(data_path, train=True, rate=0.9):
             yield line
 
 
-def read_train(data_path):
+def __read_train(data_path):
     return __read(data_path, train=True)
 
 
-def read_dev(data_path):
+def __read_dev(data_path):
     return __read(data_path, train=False)
 
 
 def __get_dataset(data_path, lazy=False):
 
     # data_path为read()方法的参数
-    __train_ds = load_dataset(read_train, data_path=data_path, lazy=lazy)
-    __dev_ds = load_dataset(read_dev, data_path=data_path, lazy=lazy)
+    __train_ds = load_dataset(__read_train, data_path=data_path, lazy=lazy)
+    __dev_ds = load_dataset(__read_dev, data_path=data_path, lazy=lazy)
 
     return __train_ds, __dev_ds
+
+
+class InferDataset(Dataset):
+    def __init__(self, query, tool_descriptions=[]):
+
+        # self.data = [
+        #     {"query": query, "title": desc} for desc in tool_descriptions
+        # ]
+        # NOTICE: JiaXinLI98 给的数据集是query和title颠倒了，所以这里也做了对应的调整
+        self.data = [{"query": desc, "title": query} for desc in tool_descriptions]
+
+    def __getitem__(self, idx):
+        return self.data[idx]
+
+    def __len__(self):
+        return len(self.data)
+
+
+def get_infer_dataset(query, tool_descriptions=[]):
+    infer_dataset = InferDataset(query, tool_descriptions)  # paddle.io.Dataset
+    infer_dataset = MapDataset(infer_dataset)  # paddlenlp.datasets.MapDataset
+    return infer_dataset
 
 
 def preprocess_function(examples, tokenizer, max_seq_length, is_test=False):
@@ -67,7 +89,7 @@ def preprocess_function(examples, tokenizer, max_seq_length, is_test=False):
     return result
 
 
-def get_dataloader(data_path, tokenizer, train_bs=64, dev_bs=128):
+def get_training_dataloader(data_path, tokenizer, train_bs=64, dev_bs=128):
 
     __train_ds, __dev_ds = __get_dataset(data_path)
 
@@ -85,25 +107,3 @@ def get_dataloader(data_path, tokenizer, train_bs=64, dev_bs=128):
 
     # BatchSampler，选择批大小和是否随机乱序，进行DataLoader
     train_batch_sampler = BatchSampler(train_ds, batch_size=train_bs, shuffle=True)
-    dev_batch_sampler = BatchSampler(dev_ds, batch_size=dev_bs, shuffle=False)
-
-    train_data_loader = DataLoader(
-        dataset=train_ds, batch_sampler=train_batch_sampler, collate_fn=collate_fn
-    )
-    dev_data_loader = DataLoader(
-        dataset=dev_ds, batch_sampler=dev_batch_sampler, collate_fn=collate_fn
-    )
-
-    return train_data_loader, dev_data_loader
-
-
-if __name__ == "__main__":
-
-    train_ds, dev_ds = __get_dataset(DATA_PATH)
-
-    # 数据集返回为MapDataset类型
-    print("数据类型:", type(train_ds))
-    # label代表标签，测试集中不包含标签信息
-    print("训练集样例:", train_ds[0])
-    print("验证集样例:", dev_ds[0])
-    # print("测试集样例:", test_ds[0])

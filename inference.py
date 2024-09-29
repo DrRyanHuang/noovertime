@@ -9,11 +9,12 @@ from utils import (
     function_request_yiyan_aistudio,
     request_plugin,
 )
-from retrieve import get_topk_baseline
+from retrieve import get_topk_baseline, get_topk
 import time
 from const import SIGNIFICANT_MAPPINGS, TOOL2ID
 from config import QIANFAN_AK, QIANFAN_SK, AISTUDIO_AK
 from pprint import pprint
+from utils import run_once
 
 erniebot.api_type = "aistudio"
 erniebot.access_token = AISTUDIO_AK
@@ -23,7 +24,22 @@ models = erniebot.Model.list()
 pprint(models)
 
 
-def retrieve_api(query, api_path, k, keywords_hit):
+@run_once
+def get_tools_description(api_path):
+
+    # 「描述-api名字」对组成的字典
+    description_dict = {}
+    with open(api_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+        for line in lines:
+            api_json = json.loads(line)
+            description_dict[api_json["description"]] = api_json
+        description_list = list(description_dict.keys())
+
+    return description_list, description_dict
+
+
+def retrieve_api(query, k, description_list):
     """
     根据给定的查询语句和API文件路径, 从中检索与查询语句最相关的k个API。
 
@@ -36,18 +52,10 @@ def retrieve_api(query, api_path, k, keywords_hit):
         list: 检索到的k个API的json格式描述信息列表。
 
     """
-    # 「描述-api名字」对组成的字典
-    description_dict = {}
-    with open(api_path, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-        for line in lines:
-            api_json = json.loads(line)
-            description_dict[api_json["description"]] = api_json
-        description_list = list(description_dict.keys())
-        topk_api_id = get_topk_baseline(query, description_list, k)
-        topk_api_id += keywords_hit
-        retrieve_list = [description_dict[description_list[id]] for id in topk_api_id]
-    return retrieve_list
+
+    topk_api_id = get_topk(query, description_list, k)
+
+    return topk_api_id
 
 
 def api_list_process(retrieve_list):
@@ -91,10 +99,16 @@ def tool_use_qianfan(query, query_id, api_path, save_path, topK):
         None
 
     """
+    description_list, description_dict = get_tools_description(api_path)
+
     # 关键词命中优先级最高
     keywords_hit = hit_keywords(query)
     # 做召回
-    retrieve_list = retrieve_api(query, api_path, topK, keywords_hit)
+    retrieve_list = retrieve_api(query, topK, description_list)
+
+    topk_api_id = set(keywords_hit) | set(retrieve_list)
+    retrieve_list = [description_dict[description_list[id]] for id in topk_api_id]
+
     # 对API列表进行处理, 获取url路径列表和标准API信息列表
     paths_list, api_list = api_list_process(retrieve_list)
 
@@ -165,10 +179,16 @@ def tool_use_aistudio(query, query_id, api_path, save_path, topK):
         None
 
     """
+    description_list, description_dict = get_tools_description(api_path)
+
     # 关键词命中优先级最高
     keywords_hit = hit_keywords(query)
     # 做召回
-    retrieve_list = retrieve_api(query, api_path, topK, keywords_hit)
+    retrieve_list = retrieve_api(query, topK, description_list)
+
+    topk_api_id = set(keywords_hit) | set(retrieve_list)
+    retrieve_list = [description_dict[description_list[id]] for id in topk_api_id]
+
     # 对API列表进行处理, 获取url路径列表和标准API信息列表
     paths_list, api_list = api_list_process(retrieve_list)
 
@@ -253,6 +273,7 @@ def start(test_path, api_path, save_path, topK=10):
             query = line["query"]
             query_id = line["qid"]
             tool_use_aistudio(query, query_id, api_path, save_path, topK)
+            tool_use_qianfan(query, query_id, api_path, save_path, topK)
 
 
 def args():
