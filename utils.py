@@ -123,3 +123,21 @@ def run_once(func):
 
     wrapper._has_run = False
     return wrapper
+
+
+def api_list_process(retrieve_list):
+    """
+    从给定的API列表中提取url路径列表和标准API信息列表。
+
+    Args:
+        retrieve_list (List[Dict]): API列表, 每个元素是一个字典, 包含标准API信息和url路径信息。
+
+    Returns:
+        Tuple[List[Dict], List[Dict]]: 包含APIurl路径和API信息的两个列表的元组。
+            - paths_list (List[Dict]): 包含APIurl路径信息的列表, 每个元素是一个字典, 包含API名称和路径信息。
+            - api_list (List[Dict]): 包含API信息的列表, 每个元素是一个字典, 包含API信息中除路径外的所有字段。
+
+    """
+    paths_list = [{"name": api["name"], "paths": api["paths"]} for api in retrieve_list]
+    api_list = [{k: v for k, v in api.items() if k != "paths"} for api in retrieve_list]
+    return paths_list, api_list

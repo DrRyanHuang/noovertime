@@ -20,10 +20,10 @@ from paddlenlp.data import DataCollatorWithPadding
 
 
 DATASET_LABEL_LIST = ["0", "1"]
-DATA_PATH = "data.json"
+DATA_PATH = "combine.json"
 
 
-def __read(data_path, train=True, rate=0.9):
+def __read(data_path, train=True, rate=0.9, reverse=False):
     with open(data_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
         split = int(len(lines) * rate)
@@ -36,13 +36,19 @@ def __read(data_path, train=True, rate=0.9):
             line = json.loads(line.strip())
             yield line
 
+            if reverse:
+                line_reverse = line.copy()
+                query, title = line_reverse["query"], line_reverse["title"]
+                line_reverse["query"], line_reverse["title"] = title, query
+                yield line_reverse
+
 
 def __read_train(data_path):
-    return __read(data_path, train=True)
+    return __read(data_path, train=True, reverse=True)
 
 
 def __read_dev(data_path):
-    return __read(data_path, train=False)
+    return __read(data_path, train=False, reverse=True)
 
 
 def __get_dataset(data_path, lazy=False):
@@ -151,8 +157,8 @@ if __name__ == "__main__":
     # 数据集返回为MapDataset类型
     print("数据类型:", type(train_ds))
     # label代表标签，测试集中不包含标签信息
-    print("训练集样例:", train_ds[0])
-    print("验证集样例:", dev_ds[0])
+    print("训练集样例:", train_ds[0], "数量: ", len(train_ds))
+    print("验证集样例:", dev_ds[0], "数量: ", len(dev_ds))
 
     tools_list = []
     with open("api_list.json", "r") as fp:
