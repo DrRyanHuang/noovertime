@@ -7,7 +7,7 @@ export LD_LIBRARY_PATH=$PYTHON_ROOT/lib:/home/opt/nvidia_lib:$LD_LIBRARY_PATH
 unset PYTHONHOME
 unset PYTHONPATH
 
-$PADDLEPADDLE_PYTHON_PATH -m pip install redis qianfan jieba
+$PADDLEPADDLE_PYTHON_PATH -m pip install redis qianfan jieba lunar_python
 
 # AK和SK请自己注册获取
 $PADDLEPADDLE_PYTHON_PATH inference.py --AK="" \

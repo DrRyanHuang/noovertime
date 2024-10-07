@@ -5,6 +5,7 @@ from config import AISTUDIO_AK
 
 import erniebot
 from tqdm import tqdm
+from utils import pp_print
 
 
 def parse_text(text):
@@ -30,7 +31,30 @@ def query_split(query, model="ernie-3.5"):
         messages=[{"role": "user", "content": content}],
     )
 
-    # print(response.get_result())
+    pp_print("[子问题拆分合并]", response.get_result())
+    response = response.get_result()
+
+    return parse_text(response)
+
+
+def query_split_need_tools(query, need_description_list, model="ernie-3.5"):
+
+    need_description_list_str = "\n" + "\n".join(
+        [f"{_idx}. {desc}" for _idx, desc in enumerate(need_description_list, 1)]
+    )
+
+    content = (
+        INTENT_DISASSEMBLE_PROMPT["content"]
+        .replace("{input_query}", query)
+        .replace("{need_description_list}", need_description_list_str)
+    )
+
+    response = erniebot.ChatCompletion.create(
+        model=model,
+        messages=[{"role": "user", "content": content}],
+    )
+
+    pp_print("[子问题拆分列表]", response.get_result())
     response = response.get_result()
 
     return parse_text(response)

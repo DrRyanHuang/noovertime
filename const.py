@@ -14,6 +14,8 @@ SIGNIFICANT_MAPPINGS = {
     "柴油": ["baidu_fule_price"],
     "温度": ["baidu_muti_weather"],
     "对联": ["get_hy_sentence_couplet"],
+    "距离": ["get_route_data_from_poi"],
+    "多少公里": ["get_route_data_from_poi"],
 }
 
 CHINESE_TRADITIONAL_FESTIVALS = """

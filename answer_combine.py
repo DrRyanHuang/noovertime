@@ -2,6 +2,7 @@ import re
 import json
 from prompts import COMBINE_SUBQUERY_ANSWER_PROMPT
 from config import AISTUDIO_AK
+from utils import pp_print
 
 import erniebot
 from tqdm import tqdm
@@ -9,15 +10,27 @@ from tqdm import tqdm
 
 def answer_combine(origin_query, sub_querys, answers, model="ernie-3.5"):
 
-    content = COMBINE_SUBQUERY_ANSWER_PROMPT["content"].replace("{query}", origin_query)
-    content = content.replace("{req_list}", "\n".join(answers))
+    content = (
+        COMBINE_SUBQUERY_ANSWER_PROMPT["content"]
+        .replace("{origin_query}", origin_query)
+        .replace(
+            "{sub_querys}",
+            "\n".join(
+                [f"{_idx}. {sub_query}" for _idx, sub_query in enumerate(sub_querys, 1)]
+            ),
+        )
+        .replace(
+            "{answers}",
+            "\n".join([f"{_idx}. {answer}" for _idx, answer in enumerate(answers, 1)]),
+        )
+    )
 
     response = erniebot.ChatCompletion.create(
         model=model,
         messages=[{"role": "user", "content": content}],
     )
 
-    # print(response.get_result())
+    pp_print("[回答合并]", response.get_result())
     response = response.get_result()
 
     return response

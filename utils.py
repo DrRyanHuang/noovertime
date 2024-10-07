@@ -1,8 +1,12 @@
 import requests
 import time
 import json
+import sys
 import qianfan
 import erniebot
+from lunar_python import Solar
+import re
+import datetime
 
 
 def truncate_json(data, num_keys):
@@ -61,7 +65,12 @@ def function_request_yiyan_aistudio(f, msgs, func_list, model="ernie-3.5"):
     """
 
     response = erniebot.ChatCompletion.create(
-        model=model, messages=msgs, functions=func_list, stream=False
+        model=model,
+        messages=msgs,
+        functions=func_list,
+        stream=False,
+        # TODO: 温度没改
+        # https://ernie-bot-agent.readthedocs.io/zh-cn/latest/sdk/api_reference/chat_completion/#_1
     )
 
     # print(response.get_result())
@@ -141,3 +150,70 @@ def api_list_process(retrieve_list):
     paths_list = [{"name": api["name"], "paths": api["paths"]} for api in retrieve_list]
     api_list = [{k: v for k, v in api.items() if k != "paths"} for api in retrieve_list]
     return paths_list, api_list
+
+
+# ---------- 由于农历相关的API失灵，这里进行Python库的手动替换 ----------
+def convert_to_lunar_date(year, month, day):
+    solar = Solar.fromYmd(year, month, day)
+    lunar = solar.getLunar()
+    return lunar.getYear(), lunar.getMonth(), lunar.getDay()
+
+
+def convert_to_lunar_date2str(*date_tuple):
+    solar = Solar.fromYmd(date_tuple[0], date_tuple[1], date_tuple[2])
+    lunar = solar.getLunar()
+    year = lunar.getYear()
+    month = lunar.getMonthInChinese()
+    day = lunar.getDayInChinese()
+    return "农历{}月{}".format(month, day)
+
+
+if __name__ == "__main__":
+
+    print(convert_to_lunar_date(2024, 10, 7))  # 输出: (2024, 9, 5)
+    print(convert_to_lunar_date2str(2024, 10, 7))  # 输出: 农历九月初五
+
+
+def find_and_convert_date(s):
+    # 将含有日期的字符串转化为标准格式
+    patterns = [
+        r"\d{4}年\d{1,2}月\d{1,2}号",
+        r"\d{4}年\d{1,2}月\d{1,2}日",
+        r"\d{4}-\d{1,2}-\d{1,2}",
+        r"\d{4}/\d{1,2}/\d{1,2}",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, s)
+        if match:
+            date_str = match.group()
+            for fmt in ["%Y年%m月%d号", "%Y年%m月%d日", "%Y-%m-%d", "%Y/%m/%d"]:
+                try:
+                    return datetime.datetime.strptime(date_str, fmt).strftime(
+                        "%Y-%m-%d"
+                    )
+                except ValueError:
+                    pass
+    # raise ValueError('no valid date format found')
+    return ""
+
+
+if __name__ == "__main__":
+    print(find_and_convert_date("2024年9月8号，驾车去北京"))  # 输出: 2024-09-08
+
+
+def get_weekday(year, month, day):
+    # 传入日期，拿到其是星期几
+    day_number = datetime.date(year, month, day).weekday()
+    days = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"]
+    return days[day_number]
+
+
+if __name__ == "__main__":
+    # 测试这个函数
+    print(get_weekday(2024, 9, 1))  # 输出: 星期日
+
+
+def pp_print(*args, file_path="log.txt", **kwargs):
+    print(*args, file=sys.stdout, **kwargs)
+    with open(file_path, "a") as f:
+        print(*args, file=f, **kwargs)
