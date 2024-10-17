@@ -243,8 +243,8 @@ def start(test_path, api_path, save_path, topK=5):
             # if "立秋一般是阴历什么时候。2024年立秋的" not in query:
             #     continue
 
-            if __idx <= 12:
-                continue
+            # if __idx <= 12:
+            #     continue
 
             # tool_use_qianfan(query, query_id, api_path, save_path, topK)
             # tool_use_aistudio(query, query_id, api_path, save_path, topK)
