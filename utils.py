@@ -7,6 +7,27 @@ import erniebot
 from lunar_python import Solar
 import re
 import datetime
+import unittest
+import timeit
+
+
+class TimerContext:
+    def __init__(self, name):
+        self.name = name
+        self.total_time = 0
+
+    def __enter__(self):
+        self.start_time = timeit.default_timer()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        end_time = timeit.default_timer()
+        execution_time = end_time - self.start_time
+        self.total_time += execution_time
+        print(f"{self.name} 执行时间: {execution_time:.5f} 秒")
+
+    def print_total_time(self):
+        print(f"{self.name} 总执行时间: {self.total_time:.5f} 秒")
 
 
 def truncate_json(data, num_keys):
@@ -71,6 +92,8 @@ def function_request_yiyan_aistudio(f, msgs, func_list, model="ernie-3.5"):
         stream=False,
         # TODO: 温度没改
         # https://ernie-bot-agent.readthedocs.io/zh-cn/latest/sdk/api_reference/chat_completion/#_1
+        # temperature=0.05,
+        request_timeout=600,
     )
 
     # print(response.get_result())
@@ -132,6 +155,129 @@ def run_once(func):
 
     wrapper._has_run = False
     return wrapper
+
+
+class DotDict:
+    def __init__(self, *args, **kwargs):
+        self.__dict__.update(*args, **kwargs)
+
+    def __getattr__(self, attr):
+        return self.__dict__.get(attr)
+
+    def __setattr__(self, key, value):
+        self.__dict__[key] = value
+
+    def __getitem__(self, key):
+        return self.__dict__[key]
+
+    def __setitem__(self, key, value):
+        self.__dict__[key] = value
+
+    def get(self, key, default=None):
+        return self.__dict__.get(key, default)
+
+    def __repr__(self):
+        return repr(self.__dict__)
+
+    def __iter__(self):
+        return iter(self.__dict__)
+
+    def __len__(self):
+        return len(self.__dict__)
+
+
+class DotDictTest1(unittest.TestCase):
+
+    def setUp(self):
+        self.dot_dict = DotDict({"a": 1, "b": 2}, c=3)
+
+    def test_init(self):
+        self.assertEqual(self.dot_dict.a, 1)
+        self.assertEqual(self.dot_dict.b, 2)
+        self.assertEqual(self.dot_dict.c, 3)
+
+    def test_setattr(self):
+        self.dot_dict.d = 4
+        self.assertEqual(self.dot_dict.d, 4)
+
+    def test_getitem(self):
+        self.assertEqual(self.dot_dict["a"], 1)
+        with self.assertRaises(KeyError):
+            _ = self.dot_dict["e"]
+
+    def test_get(self):
+        self.assertEqual(self.dot_dict.get("a"), 1)
+        self.assertEqual(self.dot_dict.get("e", 5), 5)
+
+    def test_repr(self):
+        self.assertEqual(repr(self.dot_dict), "{'a': 1, 'b': 2, 'c': 3}")
+
+    def test_iter(self):
+        keys = [key for key in self.dot_dict]
+        self.assertListEqual(keys, ["a", "b", "c"])
+
+    def test_len(self):
+        self.assertEqual(len(self.dot_dict), 3)
+
+
+class DotDictTest2(unittest.TestCase):
+
+    def setUp(self):
+        # 创建一个 DotDict 实例，用于每个测试方法
+        self.dot_dict = DotDict({"key1": "value1"}, key2="value2")
+
+    def test_init(self):
+        # 测试 __init__ 方法是否正确初始化了字典
+        self.assertEqual(self.dot_dict.key1, "value1")
+        self.assertEqual(self.dot_dict.key2, "value2")
+
+    def test_getattr(self):
+        # 测试 __getattr__ 方法是否正确返回字典中的值
+        self.assertEqual(self.dot_dict.key1, "value1")
+        # 测试不存在的键返回 None，而不是抛出异常
+        self.assertIsNone(self.dot_dict.nonexistent_key)
+
+    def test_setattr(self):
+        # 测试 __setattr__ 方法是否正确设置字典中的值
+        self.dot_dict.key3 = "value3"
+        self.assertEqual(self.dot_dict.key3, "value3")
+
+    def test_getitem(self):
+        # 测试 __getitem__ 方法是否正确返回字典中的值
+        self.assertEqual(self.dot_dict["key1"], "value1")
+        # 测试不存在的键会抛出 KeyError
+        with self.assertRaises(KeyError):
+            _ = self.dot_dict["nonexistent_key"]
+
+    def test_setitem(self):
+        # 测试 __setitem__ 方法是否正确设置字典中的值
+        self.dot_dict["key3"] = "value3"
+        self.assertEqual(self.dot_dict["key3"], "value3")
+
+    def test_get(self):
+        # 测试 get 方法是否正确返回字典中的值，以及默认值
+        self.assertEqual(self.dot_dict.get("key1"), "value1")
+        self.assertEqual(
+            self.dot_dict.get("nonexistent_key", "default_value"), "default_value"
+        )
+
+    def test_repr(self):
+        # 测试 __repr__ 方法是否正确返回字典的字符串表示
+        expected_repr = "{'key1': 'value1', 'key2': 'value2'}"
+        self.assertEqual(repr(self.dot_dict), expected_repr)
+
+    def test_iter(self):
+        # 测试 __iter__ 方法是否正确迭代字典的键
+        keys = [key for key in self.dot_dict]
+        self.assertListEqual(keys, ["key1", "key2"])
+
+    def test_len(self):
+        # 测试 __len__ 方法是否正确返回字典的长度
+        self.assertEqual(len(self.dot_dict), 2)
+
+
+if __name__ == "__main__":
+    unittest.main()
 
 
 def api_list_process(retrieve_list):
@@ -213,7 +359,28 @@ if __name__ == "__main__":
     print(get_weekday(2024, 9, 1))  # 输出: 星期日
 
 
+# 一个简单的打 log 的函数，同时输出到控制台和文件
 def pp_print(*args, file_path="log.txt", **kwargs):
     print(*args, file=sys.stdout, **kwargs)
     with open(file_path, "a") as f:
         print(*args, file=f, **kwargs)
+
+
+def find_metas_in_s(s, metas):
+    found_items = [term for term in metas if term in s]
+    return found_items
+
+
+@run_once
+def get_tools_description(api_path):
+
+    # 「描述-api名字」对组成的字典
+    description_dict = {}
+    with open(api_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+        for line in lines:
+            api_json = json.loads(line)
+            description_dict[api_json["description"]] = api_json
+        description_list = list(description_dict.keys())
+
+    return description_list, description_dict

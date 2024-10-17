@@ -2,7 +2,7 @@ import paddle
 import numpy as np
 import paddle.nn.functional as F
 from paddlenlp.transformers import AutoModelForSequenceClassification, AutoTokenizer
-
+from model_infer import run_infer
 
 # 加载中文ERNIE 3.0预训练模型和分词器
 
@@ -54,7 +54,7 @@ def evaluate(model, criterion, metric, data_loader, phase="dev"):
 
 
 @paddle.no_grad()
-def inference(model, data_loader):
+def infer(model, data_loader):
 
     model.eval()
     logits_list = []
@@ -71,6 +71,36 @@ def inference(model, data_loader):
 
     order = logits[:, -1].argsort(descending=True).cpu().numpy()
     result = logits.argmax(axis=-1).cpu().numpy()
+
+    return order, result
+
+
+# 对于二维数组，如果你想对每一行进行softmax
+def softmax_rowwise(x):
+    """Compute softmax values for each row of the input x."""
+    e_x = np.exp(x - np.max(x, axis=1, keepdims=True))
+    return e_x / e_x.sum(axis=1, keepdims=True)
+
+
+# 使用 Paddle Inference 的推理函数
+def infer_pd_inference(data_loader):
+
+    logits_list = []
+    for batch in data_loader:
+        input_ids, token_type_ids = (
+            batch["input_ids"],
+            batch["token_type_ids"],
+        )
+        input_ids = input_ids.cpu().numpy()
+        token_type_ids = token_type_ids.cpu().numpy()
+        logits = run_infer([input_ids, token_type_ids])
+        logits_list.append(logits[0])
+
+    logits = np.concatenate(logits_list, axis=0)
+    logits = softmax_rowwise(logits)
+
+    order = logits[:, -1].argsort()[::-1]
+    result = logits.argmax(axis=-1)
 
     return order, result
 

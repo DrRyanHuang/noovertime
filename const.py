@@ -1,6 +1,9 @@
 import json
 from pprint import pprint
-from utils import insert2dict
+from utils import insert2dict, convert_to_lunar_date2str, find_metas_in_s
+from borax.calendars.lunardate import TermUtils
+
+# https://github.com/kinegratii/borax
 
 SIGNIFICANT_MAPPINGS = {
     "限行尾号": ["bd_gov_xianxing"],
@@ -17,6 +20,16 @@ SIGNIFICANT_MAPPINGS = {
     "距离": ["get_route_data_from_poi"],
     "多少公里": ["get_route_data_from_poi"],
 }
+
+
+def hit_keywords(query):
+    tools = []
+    for keyword, __tools in SIGNIFICANT_MAPPINGS.items():
+        if keyword in query:
+            tools += __tools
+
+    return [TOOL2ID[tool_str] for tool_str in tools]
+
 
 CHINESE_TRADITIONAL_FESTIVALS = """
 除夕
@@ -90,3 +103,31 @@ with open("api_list.json") as f:
 # pprint(SIGNIFICANT_MAPPINGS)
 # pprint(ID2TOOL)
 # pprint(TOOL2ID)
+
+
+# 获取某一年的某一节气的时间
+def getTerm(year: int, term_name: str):
+    date = TermUtils.nth_term_day(year, term_name=term_name)
+    return date
+
+
+TERM_DATE_LUNAR_DATE = {}
+YEAR = 2024
+for term_name in SOLAR_TERMS24.split(","):
+    date = getTerm(YEAR, term_name)
+    lunar_date = convert_to_lunar_date2str(date.year, date.month, date.day)
+
+    TERM_DATE_LUNAR_DATE[term_name] = (
+        f"注意: {YEAR}年{term_name}是公历{date}, {lunar_date}."
+    )
+
+# pprint(TERM_DATE_LUNAR_DATE)
+
+
+def find_solar_terms(s, solar_terms=SOLAR_TERMS24.split(",")):
+    return find_metas_in_s(s, solar_terms)
+
+
+if __name__ == "__main__":
+    # 示例
+    print(find_solar_terms("今天是立春，明天是雨水"))

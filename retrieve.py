@@ -1,8 +1,8 @@
 import paddle
 from paddlenlp.transformers import AutoModel, AutoTokenizer
-from model import inference, get_model_tokenizer
+from model import infer, get_model_tokenizer, infer_pd_inference
 from dataset import get_inference_dataloader, get_infer_dataset
-
+from utils import TimerContext
 
 USING_BASELINE = False
 
@@ -44,6 +44,12 @@ def get_topk_baseline(q, a, k):
 def get_topk(q, a, k):
     dataset = get_infer_dataset(q, a)
     dataloader = get_inference_dataloader(dataset, tokenizer, batchsize=64)
-    order, _ = inference(model, dataloader)
+    
+    # with TimerContext("静态图") as tc1:
+    #     order_static, _ = infer(model, dataloader)
+    with TimerContext("Paddle Inference") as tc2:
+        order_pd_infer, _ = infer_pd_inference(dataloader)
 
-    return order[:k].tolist()
+    # assert (order_static[:7] == order_pd_infer[:7]).all()
+    
+    return order_pd_infer[:k].tolist()
