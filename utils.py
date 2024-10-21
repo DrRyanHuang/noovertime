@@ -358,10 +358,39 @@ if __name__ == "__main__":
     # 测试这个函数
     print(get_weekday(2024, 9, 1))  # 输出: 星期日
 
+color_head = {
+    # 基本颜色
+    "red": "[31m",
+    "green": "[32m",
+    "yellow": "[33m",
+    "blue": "[34m",
+    "magenta": "[35m",
+    "cyan": "[36m",
+    "white": "[37m",
+    "black": "[30m",
+    # 高亮颜色
+    "bright_red": "[91m",
+    "bright_green": "[92m",
+    "bright_yellow": "[93m",
+    "bright_blue": "[94m",
+    "bright_magenta": "[95m",
+    "bright_cyan": "[96m",
+    "bright_white": "[97m",
+    # 文本格式
+    "reset": "[0m",  # 重置为默认设置
+    "bold": "[1m",  # 设置为粗体
+    "underline": "[4m",  # 设置下划线
+    "blink": "[5m",  # 设置为闪烁
+    "reverse": "[7m",  # 反显
+    "conceal": "[8m",  # 隐藏
+}
+
 
 # 一个简单的打 log 的函数，同时输出到控制台和文件
-def pp_print(*args, file_path="log.txt", **kwargs):
+def pp_print(*args, file_path="logs/log.txt", color="red", **kwargs):
+    print(f"\033{color_head[color]}")
     print(*args, file=sys.stdout, **kwargs)
+    print("\033[0m")
     with open(file_path, "a") as f:
         print(*args, file=f, **kwargs)
 
