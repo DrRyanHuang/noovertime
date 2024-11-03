@@ -8,6 +8,7 @@ from utils import (
     function_request_yiyan_qianfan,
     function_request_yiyan_aistudio,
     request_plugin,
+    match_need_info,
 )
 
 import time
@@ -32,7 +33,15 @@ from utils import (
 from query_split import query_split, query_split_need_tools
 from answer_combine import answer_combine
 from prompts import ADJUST_ANSWER_PROMPT
-from retrieve import get_topk
+from retrieve import get_topk, get_bm25_model
+from milvus_rag import (
+    RECORDER,
+    combine_answer_question as get_rag_info,
+    PoemSplitter,
+    collection,
+    insert2milvus,
+    get_search_results,
+)
 
 
 ERNIE_MODEL = "ernie-4.0-turbo-8k"
@@ -159,10 +168,45 @@ def tool_use_aistudio2queryanalysis(query, query_id, api_path, save_path, topK):
             for term in terms:
                 sth_need += "\n" + TERM_DATE_LUNAR_DATE[term]
 
+        # 如果诗句在里面
+        if 19 - 1 in topk_api_id or 20 - 1 in topk_api_id:
+
+            sth_need += "你是这个诗句领域的专家，请构造思维链一步一步的想答案"
+
+            # poems_list, bm25 = get_bm25_model()
+            # doc_scores = bm25.get_scores(sub_query)
+            # max_score_page_idx = doc_scores.argsort()[-5:][::-1]  # 文件中召回前三
+
+            # splitter = PoemSplitter()
+            # files = [poems_list[idx][-1] for idx in max_score_page_idx]
+
+            # # 把新文件的答案写到诗句里
+            # for file in files:
+            #     if file in RECORDER.recorder:
+            #         pass
+            #     else:
+            #         RECORDER.add_recorder(file)
+            #         contents = splitter(file)
+            #         insert2milvus(contents, collection)
+            # try:
+            #     search_results = get_search_results(sub_query, collection)
+            # except:
+            #     search_results = "你是这个领域的专家，请构造思维链一步一步的想答案"
+            # rag_info = get_rag_info(search_results, sub_query)
+            # if "不知道" not in rag_info:
+            #     sth_need += "一些是一些可能会用到的内容, 供参考:\n" + rag_info
+
+            # with open(file, "r") as f:
+            #     poem_info = f.read()
+            #     # if len(poem_info) > 5000:
+            #     #     poem_info = poem_info[:5000]
+            #     poem_info = match_need_info(poem_info)
+            #     sth_need += "一些是一些可能会用到的内容, 供参考:"
+            #     sth_need += "\n".join(poem_info)
         messages = [
             {
                 "role": "user",
-                "content": f"{sub_query}\n{sth_need}",
+                "content": f"你是这个领域的专家，构造思维链一步一步的想, {sub_query}\n{sth_need}",
             }
         ]
         # 超出10轮就退出
@@ -240,10 +284,10 @@ def start(test_path, api_path, save_path, topK=5):
             query = line["query"]
             query_id = line["qid"]
 
-            # if "立秋一般是阴历什么时候。2024年立秋的" not in query:
+            # if query_id != "7040111222398612":
             #     continue
 
-            # if __idx <= 12:
+            # if __idx <= 13:
             #     continue
 
             # tool_use_qianfan(query, query_id, api_path, save_path, topK)

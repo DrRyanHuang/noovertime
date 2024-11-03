@@ -21,9 +21,13 @@ MODEL_NAME = "ernie-3.0-xbase-zh"
 
 def get_model_tokenizer(model_name=MODEL_NAME, num_classes=2):
 
-    model = AutoModelForSequenceClassification.from_pretrained(
-        model_name, num_classes=num_classes
-    )
+    try:
+        model = AutoModelForSequenceClassification.from_pretrained(
+            model_name, num_classes=num_classes
+        )
+    except:
+        model = None
+        model_name = "ernie_ckpt_static"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     return model, tokenizer
